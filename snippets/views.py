@@ -1,7 +1,7 @@
 from django.shortcuts import render, redirect
 from django.http import HttpResponse
-from snippets.forms import SnippetForm
-from snippets.models import Snippet
+from snippets.forms import SnippetForm, CommentForm
+from snippets.models import Snippet, Comment
 
 def create(request):
     if request.method == "GET":
@@ -18,4 +18,17 @@ def create(request):
 
 
 def view(request, key):
-    return HttpResponse("View function: " + str(key))
+    if Snippet.objects.get(id=key):
+        snippet = Snippet.objects.get(id=key)
+    else:
+        raise Http404("Snippet doesn't exist")
+    if request.method == "POST":
+        form = CommentForm(request.POST)
+        if form.is_valid():
+            comment = form.save(commit=False)
+            comment.snippet = snippet
+            comment.save()
+    form = CommentForm()
+    comments = snippet.comment_set.order_by('-datetime_created')
+    return render(request, 'snippets/view.html', {'key': key, 'title':snippet.title, 'content':snippet.content, 'form':form, 'comments': comments})
+    
